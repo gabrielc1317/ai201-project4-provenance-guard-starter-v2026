@@ -88,6 +88,7 @@
      somewhere else, say where. -->
 
 **A case where my two signals split, and what my rule does with it:**
+During testing, one submission produced a model score of 0.7424 and a stylometric score of 0.4667. The signals differed by approximately 0.276, indicating some disagreement but not exceeding my disagreement threshold of 0.50. So the system applied its normal weighted average, producing  an unsure classification. If the difference had reached 0.50 or greater, my combining rule would instead have returned a neutral score of 0.50.
 
 
 
@@ -102,61 +103,88 @@
 
 | Label | Score range | The exact text a reader sees |
 |---|---|---|
-| high-confidence human |  |  |
-| unsure |  |  |
-| high-confidence AI |  |  |
+| high-confidence human |0.00–0.35|This writing appears more consistent with human-written text, but an automated assessment cannot establish authorship.|
+| unsure |>0.35 & <0.65|We cannot reliably determine how this writing was produced. No conclusion about authorship should be drawn from this result alone.|
+| high-confidence AI |0.65-1.00|This writing shows patterns associated with AI-generated text. A person should review it; this result is not proof of authorship.|
+
 
 **Why I worded the "unsure" one this way:**
 <!-- It's the hardest of the three. It has to admit uncertainty without
      sounding like an accusation, because the person reading it may well have
      written every word themselves. -->
-
+I wanted to communicate uncertainty without implying that the writer had done something wrong. Since both detection signals have limitations, an uncertain classification should not be treated as evidence of AI authorship.
 
 
 ---
 
 ## Sample Run
 
-<!-- One submission and one appeal, pasted as text: the request, the response,
-     and the log entries. -->
-
 **A submission**
 
-<!-- The response needs content_id, guess, confidence, label, AND both
-     signal scores - model_score and style_score. Unit 8's tools read those
-     two off the response, so leaving them out costs you next unit's
-     diagnostics. -->
-
 ```bash
-$ curl -X POST http://127.0.0.1:5000/submit \
+curl -X POST http://127.0.0.1:5000/submit \
   -H "Content-Type: application/json" \
-  -d '{"text": "...", "creator_id": "..."}'
+  -d '{"text": "Writing is an important part of human communication. People express their ideas in many different ways. Some writers prefer short sentences, while others use complicated structures. Every individual develops their own style through experience and practice.", "creator_id": "writer001"}'
 ```
 
 ```json
-
+{
+  "confidence": 0.6045600526200928,
+  "content_id": "0b4fe800-a7e3-42ea-b96b-c7144b7f63d4",
+  "guess": "unsure",
+  "label": "We cannot reliably determine how this writing was produced. No conclusion about authorship should be drawn from this result alone.",
+  "model_score": 0.7424,
+  "style_score": 0.4667201052401857
+}
 ```
 
 **An appeal**
 
 ```bash
-$ curl -X POST http://127.0.0.1:5000/appeal \
+curl -X POST http://127.0.0.1:5000/appeal \
   -H "Content-Type: application/json" \
-  -d '{"content_id": "...", "reasoning": "..."}'
+  -d '{"content_id": "0b4fe800-a7e3-42ea-b96b-c7144b7f63d4", "reasoning": "I wrote this myself and request human review."}'
 ```
 
 ```json
-
+{
+  "content_id": "0b4fe800-a7e3-42ea-b96b-c7144b7f63d4",
+  "message": "Appeal recorded for human review.",
+  "status": "under_review"
+}
 ```
 
 **What the log shows afterwards**
 
 ```bash
-$ curl "http://127.0.0.1:5000/log?limit=3"
+curl "http://127.0.0.1:5000/log?limit=3"
 ```
 
 ```json
-
+{
+  "count": 2,
+  "entries": [
+    {
+      "combined_score": 0.6045600526200928,
+      "content_id": "0b4fe800-a7e3-42ea-b96b-c7144b7f63d4",
+      "creator_id": "writer001",
+      "guess": "unsure",
+      "label": "We cannot reliably determine how this writing was produced. No conclusion about authorship should be drawn from this result alone.",
+      "model_score": 0.7424,
+      "status": "decided",
+      "style_score": 0.4667201052401857,
+      "timestamp": "2026-11-09T08:00:01+00:00"
+    },
+    {
+      "content_id": "0b4fe800-a7e3-42ea-b96b-c7144b7f63d4",
+      "creator_id": "writer001",
+      "event": "appeal",
+      "reasoning": "I wrote this myself and request human review.",
+      "status": "under_review",
+      "timestamp": "2026-11-09T08:00:01+00:00"
+    }
+  ]
+}
 ```
 
 ---
@@ -165,15 +193,15 @@ $ curl "http://127.0.0.1:5000/log?limit=3"
 
 **Moment 1**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for:Help comparing different ways to combine the detection signals and implementing the backend functionality.*
+- *What came back:Several scoring approaches, and explanations of their tradeoffs*
+- *What I changed: I adapted the pipeline into my README, corrected the references to the scoring functions, and separated the submission workflow from the appeal process.*
 
 **Moment 2**
 
-- *What I asked for:*
-- *What came back:*
-- *What I changed:*
+- *What I asked for: Help understanding the project architecture, organizing the submission pipeline, and identifying how the different components interact.*
+- *What came back:A  explanation of how requests travel through the API, detection signals, scoring system, classification, and audit logging.*
+- *What I changed:I chose the disagreement-aware approach because conflicting signals shouldn't result in a confident label. I chose equal signal weights (0.50 each) and a provisional disagreement threshold of 0.50.*
 
 <!-- ═══════════════════════ UNIT 8 — THE TEST ═══════════════════════ -->
 
