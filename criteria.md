@@ -44,11 +44,11 @@ Two things worth knowing before you pick numbers:
 ---
 ## 1.
 
-<!-- Your criterion. It must name a number. -->
+<!-- No more then 5% of verfieid human submissions should be incorrectly labelled as high confidence AI.-->
 
 
 
-**Why this target:**
+**Why this target: Being falsely accused of submitting AI-genereated content has serious potential consequences, as a result the amount of verified human submissions that sould be labelled as high confidence AI, should remain relatively low.**
 
 
 
@@ -56,11 +56,11 @@ Two things worth knowing before you pick numbers:
 
 ## 2.
 
-<!-- Your criterion. -->
+<!-- There should be a minimum score seperation of 0.3 between AI generated and human written samples.-->
 
 
 
-**Why this target:**
+**Why this target: There should be a clear boundary between Ai generated content and human written ones, 0.3 score seperation shows a clear difference between the two while not being so far apart that every run would be labelled as unsure. **
 
 
 
@@ -68,11 +68,11 @@ Two things worth knowing before you pick numbers:
 
 ## 3.
 
-<!-- Your criterion. -->
+<!-- All 3  labels should be reachable during a test. -->
 
 
 
-**Why this target:**
+**Why this target: There is no reason that a label should not be reachable duriong a test, for the system to work properly all 3 labels muts be available**
 
 
 
@@ -80,11 +80,11 @@ Two things worth knowing before you pick numbers:
 
 ## 4.
 
-<!-- Your criterion. -->
+<!-- 100% of appeals should bre recorded. -->
 
 
 
-**Why this target:**
+**Why this target: Every appeal should be recorded, for no reason should one be dropped or forgotten, etc. it is crucial that each appeal is recorded for human review so a writer can challenge a false classification.**
 
 
 
@@ -92,11 +92,11 @@ Two things worth knowing before you pick numbers:
 
 ## 5.
 
-<!-- Your criterion. -->
+<!-- Out of 10 malformed requests, 10 of them should be rejected correctly without server errors. -->
 
 
 
-**Why this target:**
+**Why this target: If theres something wrong with a request whether the text is missing, empty, extremely long, wrong syntax, etc. they should be handled properly (rejected) by the server without error.**
 
 
 

@@ -38,7 +38,13 @@
 
 <!-- The path a submission takes, from arriving to the label a reader sees.
      Six or seven steps — this is the trace you wrote in Milestone 1. -->
-
+1) Recieve and validate the submission (app.py::submit)
+2) Generate a content identifier
+3) Analayze the writing (detector.py anmd stylometry.py)
+4) Combine the signals (scoring.py::combine_signals)
+5) Generate a classification (scoring.py::score_to_label)
+6) Record the decision (audit.py:log_decision)
+7) Return the response (app.py::submit)
 
 
 ---
@@ -53,30 +59,30 @@
 
 ### Signal one — the model signal
 
-**What it measures:**
+**What it measures: Measures the perplexity of each submitted writing, how predictable the next sequence of text is to an AI.**
 
-**Why that might differ between human and AI writing:**
+**Why that might differ between human and AI writing: Ai is good at prediciting AI, since genereated text is based off leared probability distributions, humans on the other hand are more likely to have unusual phrasing, unexepected word choices, etc.**
 
-**What it can't see:**
+**What it can't see: It cannot see who wrote the text and whether they truly are a human or an AI.**
 
 ### Signal two — the style signal
 
-**What it measures:**
+**What it measures: The statistical and stylistic characteristics of a submitted wirting.**
 
-**Why that might differ between human and AI writing:**
+**Why that might differ between human and AI writing: AI writing usually contains consistent sentence structure, vocabulary patterns and punctuation. While human writing usually contains more irregularities, stylistic variation and different phrasing**
 
-**What it can't see:**
+**What it can't see: Cannot see if specific writing patterns were made by an AI or a human.**
 
 ### The combining rule
 
 <!-- Write the rule in words, then give the numbers. What happens when the two
      signals disagree? -->
 
-**The rule:**
+**The rule: If the two signals substantially disagree, the system returns an uncertain score rather than producing a potentially misleading classification.**
 
-**The numbers:**
+**The numbers: High-confidence human: Score ≤ 0.35, Unsure: 0.35 < Score < 0.65, High-confidence AI: Score ≥ 0.65**
 
-**Where it lives:** `scoring.py::combine_signals`
+**Where it lives: scoring.py::combine_signals** `scoring.py::combine_signals`
 
 <!-- ⚠️ The grader checks your code against that line. If your rule lives
      somewhere else, say where. -->
