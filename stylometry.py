@@ -48,82 +48,50 @@ def words(text: str) -> list[str]:
 # ── The three measures — YOU BUILD THESE ─────────────────────────────────────
 
 def sentence_length_spread(text: str) -> float:
-    """
-    How much sentence length varies. ← TODO
-
-    Returns:
-        A float. Decide yourself what scale it's on and which direction means
-        "more human" — then write that down, because your combining rule
-        depends on knowing it.
-
-    A hint on what you're reaching for: the standard deviation of sentence
-    lengths, probably divided by the mean so a long text and a short one are
-    comparable. `statistics.stdev` is imported for you.
-
-    Watch the edge case: a one-sentence submission has no spread at all, and
-    `stdev` raises on fewer than two values. Decide what that should return
-    before the attack set decides for you.
-    """
-    # TODO: replace this
-    return 0.0
+    """Coefficient of variation in sentence lengths (higher = more varied)."""
+    lengths = [len(words(sentence)) for sentence in sentences(text)]
+    lengths = [count for count in lengths if count]
+    if len(lengths) < 2:
+        return 0.0
+    mean = statistics.mean(lengths)
+    return statistics.stdev(lengths) / mean if mean else 0.0
 
 
 def type_token_ratio(text: str) -> float:
-    """
-    Unique words over total words. ← TODO
-
-    Returns:
-        A float between 0 and 1. Higher means more varied vocabulary.
-
-    Worth knowing before you rely on it: this measure falls as text gets
-    longer, because common words repeat. Two texts of different lengths aren't
-    directly comparable on it, and if your test inputs vary a lot in length,
-    that alone can look like a signal.
-    """
-    # TODO: replace this
-    return 0.0
+    """Unique lowercase words divided by total words."""
+    tokens = words(text)
+    return len(set(tokens)) / len(tokens) if tokens else 0.0
 
 
 def punctuation_density(text: str) -> float:
-    """
-    How much punctuation, relative to length. ← TODO
-
-    Returns:
-        A float. Whether you count all punctuation or only some kinds — commas,
-        semicolons, dashes — is a real choice. Semicolons and em dashes are
-        more interesting than full stops, because they vary more between
-        writers.
-    """
-    # TODO: replace this
-    return 0.0
+    """Punctuation marks per word (not necessarily capped at one)."""
+    tokens = words(text)
+    if not tokens:
+        return 0.0
+    marks = sum(char in '.,;:!?—–-()[]' for char in text)
+    return marks / len(tokens)
 
 
 # ── Combining them ───────────────────────────────────────────────────────────
 
 def style_signal(text: str) -> float:
-    """
-    The style signal as a 0–1 score. **Higher means more likely AI.** ← TODO
+    """Heuristic AI-likeness score from surface statistics, in [0, 1]."""
+    tokens = words(text)
+    if len(tokens) < 20 or len(sentences(text)) < 2:
+        return 0.5
 
-    Combine your three measures into one number. Same direction as
-    `detector.model_signal`, so that `scoring.combine_signals` can treat them
-    the same way — if one of your signals runs backwards, everything above it
-    is wrong in a way that's hard to see.
+    spread = sentence_length_spread(text)
+    diversity = type_token_ratio(text)
+    punct = punctuation_density(text)
 
-    Two things to decide and write down:
-
-      1. Which direction each measure points. Low spread means more AI-ish, so
-         it needs flipping. Work out which of your three need that.
-      2. How to get each onto a comparable scale. A raw type-token ratio sits
-         between 0 and 1; a raw punctuation count doesn't. Adding them
-         unscaled means whichever has the bigger numbers wins by default.
-
-    Test it on the four calibration inputs from Milestone 4 — clearly AI,
-    clearly human, plain conventional human writing, lightly-edited AI — before
-    you trust it. Plain and ordinary, not formal: formal prose reads as *human*
-    to signal one, and it is plain writing that gets accused.
-    """
-    # TODO: replace this
-    return 0.5
+    # Higher variation/diversity/punctuation is tentatively more human-like.
+    # Normalization constants are engineering hypotheses, not calibrated facts.
+    spread_ai = 1.0 - min(spread / 0.8, 1.0)
+    diversity_ai = 1.0 - min(max((diversity - 0.45) / 0.40, 0.0), 1.0)
+    punctuation_ai = 1.0 - min(punct / 0.25, 1.0)
+    return max(0.0, min(1.0,
+        0.45 * spread_ai + 0.35 * diversity_ai + 0.20 * punctuation_ai
+    ))
 
 
 if __name__ == "__main__":
