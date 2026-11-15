@@ -151,7 +151,7 @@ def health():
 # ── YOU BUILD THIS ────────────────────────────────────────────────────────────
 
 @app.post("/submit")
-# @limiter.limit(f"{config.RATE_LIMIT_PER_MINUTE}/minute;{config.RATE_LIMIT_PER_DAY}/day")
+@limiter.limit(f"{config.RATE_LIMIT_PER_MINUTE}/minute;{config.RATE_LIMIT_PER_DAY}/day")
 def submit():
     """Accept, validate, classify, audit, and return a writing submission."""
     payload = request.get_json(silent=True)
