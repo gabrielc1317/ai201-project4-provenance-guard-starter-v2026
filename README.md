@@ -209,23 +209,24 @@ curl "http://127.0.0.1:5000/log?limit=3"
 
 ## Rate Limiting
 
-**My limits:** ___ per minute, ___ per day
+**My limits:** 10 per minute, 200 per day
 
-**Why those numbers and not others:**
+**Why those numbers and not others: 10 a minute is the same as one requst every 6 seconds, this is a reasonable limit for a writer going back and forth with the model to change specific things, typing a request after just sending one every 6 seconds is difficult for a human, first they user has to type the prompt, but usually the user reads the response of the prvious prompt before sending the new one. If the human user was making incrememntal small changes, 10 a minute is a reasonable limit allowing quick changes while limiting potnential scripts attempting many requests in a short timeframe. 200 a day restricts slower automted submissions.**
 <!-- Think about two people: a real writer submitting their own work a few
      times an hour, and a script sending a thousand variations to map your
      thresholds. Your numbers have to be liveable for the first and hostile to
      the second. -->
 
-**What a caller counts as:** <!-- per address, or per creator_id? They fail
-differently — one script can look like a thousand callers, and one household
-can look like one. -->
+**What a caller counts as: per creator_id, if none available, fallback to ip address.** <!-- per address, or per creator_id? They fail differently — one script can look like a thousand callers, and one household can look like one. -->
 
-**The run of status codes when I pushed past it:**
+**The run of status codes when I pushed past it: The last 5 of the 15 requests were rejected with a 429 code.**
 
 <!-- python run_attacks.py --flood 15 -->
 
 ```
+============================================================
+200 200 200 200 200 200 200 200 200 200 429 429 429 429 429
+============================================================
 
 ```
 
@@ -235,6 +236,64 @@ can look like one. -->
 
 <!-- Every attack with its outcome and a held-or-broke mark.
      `run_attacks.py --label before` produces the table. -->
+     | ID | Family | Targeting | Status | Content ID | Guess | Score | Verdict |
+|---|---|---|---|---|---|---|---|
+| EV01 | evasion | signal two: typos raise word variety | 200 | `e09a70e8-9e5c-48ee-906c-74f00a19d448` | human| 0.310 |BROKE|
+| EV02 | evasion | signal two: broken-up sentences raise length spread | 200 | `9476eaa3-161d-43c1-8a6b-2485f68d4dc0` | unsure | 0.500 |BROKE|
+| EV03 | evasion | signal two: a pasted quotation changes the shape | 200 | `ece0d621-d95b-4f68-9409-39cdb2a1f9cb` | unsure | 0.478 |BROKE|
+| EV04 | evasion | signal one: unusual words raise perplexity | 200 | `9052dca6-ca54-4e87-8d7f-e07ddbeb4ed8` | unsure | 0.526 |BROKE|
+| EV05 | evasion | both signals: heavy human editing pass | 200 | `b9e747c5-40eb-4142-8974-9cd659288c25` | human | 0.263 |BROKE|
+| EV06 | evasion | signal two: one very long sentence and one very short | 200 | `bc697553-d554-40d5-8c52-355f78c7e394` | unsure | 0.395 |BROKE|
+| EV07 | evasion | signal two: padding with punctuation | 200 | `586a2efe-e2d3-4a6c-bba3-00475e85a9fa` | unsure | 0.543 |BROKE|
+| EV08 | evasion | signal one: text below the token window | 200 | `84e57759-76ed-45f5-9b66-f09dfec2aa34` | unsure | 0.373 |BROKE|
+| EV09 | evasion | both: AI text with a human opening paragraph bolted on | 200 | `22e101b5-7f5c-4fab-8d97-2d898ec742aa` | unsure | 0.493 |BROKE|
+| EV10 | evasion | signal two: repeated stanza structure | 200 | `5cb931fb-e469-4354-9b1c-54b1d0d629e5` | ai | 0.863 |HELD|
+| FP01 | false_positive | plain, clear human writing with no flourishes | 200 | `fbd5ed0b-528b-4a59-bcb6-4965187c3a2f` | unsure | 0.528 |HELD|
+| FP02 | false_positive | human writing in a formal register | 200 | `c3d7fbc9-fc4c-44d4-a2f6-96b6f90b6338` | unsure | 0.646 |HELD|
+| FP03 | false_positive | a non-native English speaker writing carefully | 200 | `fcbf731c-44f1-4ab9-a56c-bf8bb83430c3` | ai | 0.657 |BROKE|
+| FP04 | false_positive | a student essay written to a rubric | 200 | `0adfff32-655b-497c-abfb-72f306873aa2` | unsure | 0.603 |HELD|
+| FP05 | false_positive | technical documentation written by a person | 200 | `9b7e2492-27e3-4389-a6c7-04916852d9d6` | ai | 0.712 |BROKE|
+| FP06 | false_positive | a person imitating a formal template | 200 | `a6028ceb-8c7a-4505-9bc6-7dafcd1b1baa` | unsure | 0.500 |HELD|
+| FP07 | false_positive | human writing that repeats a phrase deliberately | 200 | `f441c7be-683e-4b57-a577-ff782f323943` | ai | 0.671 |BROKE|
+| FP08 | false_positive | very short genuine human submission | 400 | `—` | — | — |BROKE|
+| PI01 | prompt_injection | instruction to ignore the check | 200 | `3118d5df-ad6f-4a7f-8306-18e3975cd87f` | human | 0.325 |BROKE|
+| PI02 | prompt_injection | instruction disguised as a system message | 200 | `5c72dc28-f9c7-4ac0-a3c7-0cb00bb0fc68` | human | 0.173 |HELD|
+| PI03 | prompt_injection | instruction wrapped in the writer's voice | 200 | `21452b39-fd0c-486d-a247-b8a6314c9ff1` | unsure | 0.475 |HELD|
+| PI04 | prompt_injection | attempt to make the label text hostile | 200 | `0b6a37ac-89cf-4121-9530-8d32c8379a0a` | unsure | 0.408 |HELD|
+| PI05 | prompt_injection | attempt to inject into the audit log | 200 | `ad6ed416-cf49-4f0f-8555-3cd83986bd8b` | unsure | 0.412 |HELD|
+| PI06 | prompt_injection | instruction plus real human text | 200 | `8beebf31-4556-49d4-bb2b-79ea6df12bcf` | unsure | 0.502 |HELD|
+| MF01 | malformed | text is only whitespace | 400 | `—` | — | — |HELD|
+| MF02 | malformed | text is a single character | 400 | `—` | — | — |HELD|
+| MF03 | malformed | text is control characters | 400 | `—` | — | — |  HELD
+| MF04 | malformed | text is only punctuation | 400 | `—` | — | — |HELD|
+| MF05 | malformed | text is a very long single word | 400 | `—` | — | — |HELD|
+| MF06 | malformed | text is emoji only | 400 | `—` | — | — |HELD|
+| MF07 | malformed | text is right-to-left script | 200 | `a44a842c-f4fa-4d2a-9d6f-454d96533034` | ai | 0.703 |BROKE|
+| MF08 | malformed | text is 60,000 characters | 413 | `—` | — | — |HELD|
+| RQ01 | malformed | no text field at all | 400 | `—` | — | — |HELD|
+| RQ02 | malformed | no creator_id | 400 | `—` | — | — |HELD|
+| RQ03 | malformed | text is a number | 400 | `—` | — | — |HELD|
+| RQ04 | malformed | text is a list | 400 | `—` | — | — |HELD|
+| RQ05 | malformed | text is null | 400 | `—` | — | — |HELD|
+| RQ06 | malformed | creator_id is an object | 400 | `—` | — | — |HELD|
+| RQ07 | malformed | body is a JSON array, not an object | 400 | `—` | — | — |HELD|
+| RQ08 | malformed | body is unparseable JSON | 400 | `—` | — | — |HELD|
+| RQ09 | malformed | body is empty | 400 | `—` | — | — |HELD|
+| RQ10 | malformed | body is form-encoded, not JSON | 400 | `—` | — | — |HELD|
+| RQ11 | malformed | body is JSON claiming to be plain text | 400 | `—` | — | — |HELD|
+| RQ12 | malformed | deeply nested JSON | 400 | `—` | — | — |HELD|
+| FL01_01 | flood_same_creator | 20 rapid submissions from one creator | 400 | `—` | — | — |HELD|
+| FL01_02 | flood_same_creator | 20 rapid submissions from one creator | 400 | `—` | — | — |HELD|
+| FL01_03 | flood_same_creator | 20 rapid submissions from one creator | 400 | `—` | — | — |HELD|
+| FL01_04 | flood_same_creator | 20 rapid submissions from one creator | 400 | `—` | — | — |HELD|
+| FL01_05 | flood_same_creator | 20 rapid submissions from one creator | 400 | `—` | — | — |HELD|
+| FL01_06 | flood_same_creator | 20 rapid submissions from one creator | 400 | `—` | — | — |HELD|
+| FL01_07 | flood_same_creator | 20 rapid submissions from one creator | 400 | `—` | — | — |HELD|
+| FL01_08 | flood_same_creator | 20 rapid submissions from one creator | 400 | `—` | — | — |HELD|
+| FL01_09 | flood_same_creator | 20 rapid submissions from one creator | 400 | `—` | — | — |HELD|
+| FL01_10 | flood_same_creator | 20 rapid submissions from one creator | 400 | `—` | — | — |HELD|
+| FL01_11 | flood_same_creator | 20 rapid submissions from one creator | 429 | `—` | — | — |HELD|
+| FL01_12 | flood_same_creator | 20 rapid submissions from one creator | 429 | `—` | — | — |HELD|
 
 
 
@@ -243,11 +302,22 @@ can look like one. -->
 <!-- Choose entries that show the interesting failures, not the ten easiest. -->
 
 ```json
+{"timestamp": "2026-11-15T18:23:59+00:00", "content_id": "3118d5df-ad6f-4a7f-8306-18e3975cd87f", "creator_id": "attacker_PI01", "guess": "human", "model_score": 0.4625, "style_score": 0.18836790191743583, "combined_score": 0.3254339509587179, "label": "This writing appears more consistent with human-written text, but an automated assessment cannot establish authorship.", "status": "decided"}
+{"timestamp": "2026-11-15T18:24:00+00:00", "content_id": "a44a842c-f4fa-4d2a-9d6f-454d96533034", "creator_id": "attacker_MF07", "guess": "ai", "model_score": 0.9064, "style_score": 0.5, "combined_score": 0.7032, "label": "This writing shows patterns associated with AI-generated text. A person should review it; this result is not proof of authorship.", "status": "decided"}
+{"timestamp": "2026-11-15T18:23:59+00:00", "creator_id": "attacker_FP08", "event": "rejected", "status": "rejected", "reason": "text_too_short_or_invalid"}
+{"timestamp": "2026-11-15T18:23:59+00:00", "content_id": "f441c7be-683e-4b57-a577-ff782f323943", "creator_id": "attacker_FP07", "guess": "ai", "model_score": 0.8816, "style_score": 0.46015394727152886, "combined_score": 0.6708769736357645, "label": "This writing shows patterns associated with AI-generated text. A person should review it; this result is not proof of authorship.", "status": "decided"}
+{"timestamp": "2026-11-15T18:23:59+00:00", "content_id": "9b7e2492-27e3-4389-a6c7-04916852d9d6", "creator_id": "attacker_FP05", "guess": "ai", "model_score": 0.8005, "style_score": 0.6226436597131433, "combined_score": 0.7115718298565716, "label": "This writing shows patterns associated with AI-generated text. A person should review it; this result is not proof of authorship.", "status": "decided"}
+{"timestamp": "2026-11-15T18:23:59+00:00", "content_id": "fcbf731c-44f1-4ab9-a56c-bf8bb83430c3", "creator_id": "attacker_FP03", "guess": "ai", "model_score": 0.8051, "style_score": 0.50914375565228, "combined_score": 0.6571218778261401, "label": "This writing shows patterns associated with AI-generated text. A person should review it; this result is not proof of authorship.", "status": "decided"}
+{"timestamp": "2026-11-15T18:23:59+00:00", "content_id": "9476eaa3-161d-43c1-8a6b-2485f68d4dc0", "creator_id": "attacker_EV02", "guess": "unsure", "model_score": 0.5943, "style_score": 0.07314560439560447, "combined_score": 0.5, "label": "We cannot reliably determine how this writing was produced. No conclusion about authorship should be drawn from this result alone.", "status": "decided"}
+{"timestamp": "2026-11-15T18:23:59+00:00", "content_id": "9052dca6-ca54-4e87-8d7f-e07ddbeb4ed8", "creator_id": "attacker_EV04", "guess": "unsure", "model_score": 0.6114, "style_score": 0.44047989395068177, "combined_score": 0.525939946975341, "label": "We cannot reliably determine how this writing was produced. No conclusion about authorship should be drawn from this result alone.", "status": "decided"}
+{"timestamp": "2026-11-15T18:23:59+00:00", "content_id": "22e101b5-7f5c-4fab-8d97-2d898ec742aa", "creator_id": "attacker_EV09", "guess": "unsure", "model_score": 0.7042, "style_score": 0.28166172011026624, "combined_score": 0.49293086005513315, "label": "We cannot reliably determine how this writing was produced. No conclusion about authorship should be drawn from this result alone.", "status": "decided"}
+{"timestamp": "2026-11-15T18:23:59+00:00", "content_id": "586a2efe-e2d3-4a6c-bba3-00475e85a9fa", "creator_id": "attacker_EV07", "guess": "unsure", "model_score": 0.5862, "style_score": 0.5, "combined_score": 0.5431, "label": "We cannot reliably determine how this writing was produced. No conclusion about authorship should be drawn from this result alone.", "status": "decided"}
+
 
 ```
 
 **The single worst outcome** — the one I'd least want to explain to a writer
-whose work got caught by it:
+whose work got caught by it: FP05, a technical documentation written by a person, was marked human by the system. A technical documentation usually follow format, specific and repeitive vocabulary tailored to the subject. On top of that, technical documents usually take a lot of time to write and are high effort as they are specific and people rely on said document for understanding.  Given that usually a writier must follow conventional writing practices for the document, I'd least like to explain to the writer of a high effort document that there were flagged for essentially doing the right thing.
 
 
 
