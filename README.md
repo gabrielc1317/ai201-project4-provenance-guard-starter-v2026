@@ -329,16 +329,125 @@ whose work got caught by it: FP05, a technical documentation written by a person
 
 | Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
 |---|---|---|---|---|---|
-| 1.  |  |  |  |  |  |
-| 2.  |  |  |  |  |  |
-| 3.  |  |  |  |  |  |
-| 4.  |  |  |  |  |  |
-| 5.  |  |  |  |  |  |
+|1. False positives|≤5%|4/20 (20%)|4/20 (20%)|4/20 (20%)|MISSED|
+|2. Score separation|≥0.30|-0.084|-0.084|-0.084|MISSED|
+|3. Label coverage|	3/3|3/3|3/3|3/3|MET|
+|4. Appeals recorded|100%|3/3|3/3|3/3|MET|
+|5. Malformed requests|10/10|10/10|10/10|10/10|MET|
+
+
 
 **Real output from one trial**, pasted as text, naming the file and function
-that produced it:
+that produced it: Source: results/run_2026-11-15_1820_before.md / run_eval.py::main
 
 ```json
+### my own writing — Trial 1
+Source: results/run_2026-11-15_1820_before.md / run_eval.py::main
+```json
+[
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.6903962747690247,
+    "model_score": 0.6051,
+    "style_score": 0.7756925495380493,
+    "label": "This writing shows patterns associated with AI-generated text. A person should review it; this result is not proof of authorship.",
+    "sent": "Greek city states were all part of Greece and rule themselves, because"
+  }
+]
+```
+
+### published human writing — Trial 1
+Source: results/run_2026-11-15_1820_before.md / run_eval.py::main
+```json
+[
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.6698351321855764,
+    "model_score": 0.6864,
+    "style_score": 0.653270264371153,
+    "label": "This writing shows patterns associated with AI-generated text. A person should review it; this result is not proof of authorship.",
+    "sent": "I could have shown the infl ow of energy coming from a cloud, but inst"
+  }
+]
+```
+
+### AI writing for score separation — Trial 1
+Source: results/run_2026-11-15_1820_before.md / run_eval.py::main
+```json
+[
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.5695519355779541,
+    "model_score": 0.6435,
+    "style_score": 0.4956038711559083,
+    "label": "We cannot reliably determine how this writing was produced. No conclusion about authorship should be drawn from this result alone.",
+    "sent": "Effective time management is an important skill for students who want "
+  }
+]
+```
+
+### label coverage — Trial 1
+Source: results/run_2026-11-15_1820_before.md / run_eval.py::main
+```json
+[
+  {
+    "status": 200,
+    "guess": "human",
+    "confidence": 0.30977815838547235,
+    "model_score": 0.1635,
+    "style_score": 0.4560563167709447,
+    "label": "This writing appears more consistent with human-written text, but an automated assessment cannot establish authorship.",
+    "sent": "The importance of effective communication in the workplace cannot be o"
+  },
+  {
+    "status": 200,
+    "guess": "unsure",
+    "confidence": 0.5280441578766563,
+    "model_score": 0.6175,
+    "style_score": 0.43858831575331253,
+    "label": "We cannot reliably determine how this writing was produced. No conclusion about authorship should be drawn from this result alone.",
+    "sent": "We got to the campsite about four. The pitch was fine, a bit sloped, b"
+  },
+  {
+    "status": 200,
+    "guess": "ai",
+    "confidence": 0.7115718298565716,
+    "model_score": 0.8005,
+    "style_score": 0.6226436597131433,
+    "label": "This writing shows patterns associated with AI-generated text. A person should review it; this result is not proof of authorship.",
+    "sent": "To configure the service, edit the settings file in the installation d"
+  }
+]
+```
+
+### bad input — Trial 1
+Source: results/run_2026-11-15_1820_before.md / run_eval.py::main
+```json
+[
+  {
+    "status": 400,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "sent": "(empty text)"
+  },
+  {
+    "status": 413,
+    "guess": null,
+    "confidence": null,
+    "model_score": null,
+    "style_score": null,
+    "label": null,
+    "sent": "word word word word word word word word word word word word word word "
+  }
+]
+```
+
 
 ```
 
@@ -359,6 +468,21 @@ that produced it:
      Look for a pattern. Five failures on one signal is one problem, not five. -->
 
 
+Criterion 1 - MISSED: False-positive rate
+The system falsely classified 4 of 20 verified human passages as AI-generated (20%), exceeding my maximum acceptable rate of 5%. This happened identically across all three trials. The failures occurred in the detection signals and combining rule. In my writing #9, the stylometric score of 0.7757 raised the combined score to 0.6904 despite the lower model score of 0.6051. In writing #10, both signals were relatively high (model 0.7268, style 0.6513), producing a combined score of 0.6891. This demonstrates that the stylometric heuristics can mistake features of authentic human writing for AI-generated patterns. The combining rule also allows moderately high scores from both signals to produce a false AI classification.
+
+Criterion 2 - MISSED: Score separation
+The average combined score for the 20 human passages was 0.5962, while the average for the 10 AI generated passages was 0.5122. The resulting separation was -0.0840, substantially below my required positive separation of 0.30. The failure is in the detection signals and their combination, rather than merely the final label mapping. The signals failed to distinguish these groups in the intended direction, and the combining rule did not correct that overlap. All ten AI generated samples were classified as unsure. Changing only the AI classification threshold would not resolve the underlying problem of AI generated writing receiving lower average scores than human writing.
+
+| Attack | Stage | Mechanism |
+|---|---|---|
+| EV03 | Signal two and combining rule | Adding a conversational quotation produced a relatively low stylometric score of 0.2889 despite a model score of 0.6662. The combining rule averaged both signals, producing 0.4776 (`unsure`). |
+| EV04 | Signal one and combining rule | Unusual vocabulary targeted model perplexity. The resulting model score was 0.6114 and the style score was 0.4405, yielding 0.5259 (`unsure`). This demonstrates insufficient detection of the modified text, although a control sample would be needed to establish the vocabulary substitutions' precise effect. |
+| EV05 | Both detection signals | Heavy human editing produced low scores from both the model (0.3212) and stylometry (0.2051). Their average of 0.2631 incorrectly classified the AI-origin text as human. Neither signal maintained sufficient discrimination after substantial editing. |
+| EV06 | Signal two and combining rule | Combining an unusually long sentence with a very short sentence produced a low style score of 0.2179 versus a model score of 0.5727. The average of 0.3953 resulted in `unsure`, demonstrating sensitivity to manipulated sentence-length patterns. |
+| EV07 | Signal two and combining rule | Punctuation padding produced a neutral style score of exactly 0.5000. Because the input is structured as a long semicolon-separated sentence, this is consistent with the stylometric fallback for insufficient sentence count. The model score of 0.5862 and neutral style score averaged to 0.5431 (`unsure`). |
+| EV08 | Signal one and signal two | The ten-word submission passed the route's minimum-length validation but fell below stylometry's 20-word minimum, causing the neutral fallback of 0.5000. The model scored the short text at only 0.2452. Their average of 0.3726 avoided an AI classification. |
+| EV09 | Signal two and combining rule | Adding a conversational human introduction to AI-generated writing produced a model score of 0.7042 but a much lower stylometric score of 0.2817. Their difference of approximately 0.4225 did not trigger the disagreement override. The normal average produced 0.4929 (`unsure`), masking the higher model signal. |
 
 ---
 
