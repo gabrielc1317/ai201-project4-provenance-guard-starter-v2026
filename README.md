@@ -337,6 +337,8 @@ whose work got caught by it: FP05, a technical documentation written by a person
 
 
 
+
+
 **Real output from one trial**, pasted as text, naming the file and function
 that produced it: Source: results/run_2026-11-15_1820_before.md / run_eval.py::main
 
@@ -488,21 +490,27 @@ The average combined score for the 20 human passages was 0.5962, while the avera
 
 ## The Improvement
 
-**What I changed:**
+**What I changed: The AI threshold from 0.65 to 0.75**
 
-**Which diagnosis pointed at it:**
+**Which diagnosis pointed at it: For my criterion of false positives, there was too many for human written ones, even ones I wrote, this will land them in unsure. Though not optimal, the philosophy behind the system is that human writing shouldn't be falsely flagged as AI (beyond detecting if an ai wrote the text)**
 
 ### Attack Run — After
 
 <!-- Same format. `run_attacks.py --label after` -->
 
+| Criterion | Target | Run 1 | Run 2 | Run 3 | Verdict |
+|---|---|---|---|---|---|
+| 1. False positives | ≤5% | 0/20 (0%) | 0/20 (0%) | 0/20 (0%) | MET |
+| 2. Score separation | ≥0.30 | -0.084 | -0.084 | -0.084 | MISSED |
+| 3. Label coverage | 3/3 | 2/3 | 2/3 | 2/3 | MISSED |
+| 4. Appeals recorded | 100% | 3/3 | 3/3 | 3/3 | MET |
+| 5. Malformed requests | 10/10 | 10/10 | 9/10 | 8/10 | MISSED* |
 
-
-**Did it help, and how do I know:**
+**Did it help, and how do I know: The change widened the uncertainty region. The existing label-coverage scenario went from demonstrating all three labels to demonstrating only two. The nine successful evasion outcomes also remained unchanged. THough there were no more false positives, majority of responses were unsure.**
 
 <!-- Widening the unsure band usually fixes one problem and creates another.
      Reporting that trade honestly is worth full credit. -->
-
+     
 
 
 ---
@@ -513,12 +521,35 @@ The average combined score for the 20 human passages was 0.5962, while the avera
      what you'd do, and why you stopped. -->
 
 
+Evasion attacks (EV01–EV09)
+
+Nine of the ten evasion attacks still avoided a high confidence AI classification. EV01 and EV05 were classified as human, while EV02-EV04 and EV06-EV09 were classified as unsure. These failures occurred for different reasons: EV01 and EV05: Edited AI-generated writing received low model scores, demonstrating that the model signal can mistake modified AI writing for human writing; EV02, EV03, EV06, EV07, and EV09: Manipulations involving sentence structure, quotations, punctuation, or mixed writing styles reduced the stylometric signal or triggered its neutral fallback. These changes prevented the combined scores from reaching the AI threshold; EV04: Unusual vocabulary produced an unsure classification, revealing limitations in the model's ability to distinguish modified AI writing; EV08: A ten-word submission passed input validation but was too short for meaningful stylometric analysis, triggering the neutral fallback.
+
+What I would fix: Improve the stylometric signal's handling of short text, sentence boundaries, punctuation, and mixed writing styles. I would also evaluate whether the model signal can be better calibrated using independently verified human and AI-generated writing.
+
+Score separation - Criterion 2 MISSED
+
+The system still fails to distinguish human and AI writing reliably. The average human-writing score was 0.5962, while AI generated writing averaged only 0.5122. The resulting separation of -0.084 is substantially below my required +0.30.
+
+What I would fix: Investigate the model's perplexity-to-score conversion and the stylometric heuristics, then calibrate both signals using a larger labeled dataset. I would also compare different weighting strategies and evaluate their effects on both false positives and AI detection.
+
+Label coverage - Criterion 3 MISSED in the fixed test
+
+After increasing the AI threshold, my original three label-coverage examples produced human, unsure, and unsure. This missed the test's 3/3 target. However, EV10 still received an AI classification in the staff attack set, demonstrating that all three labels remain reachable in the overall system.
+
+What I would fix: Develop a broader label-coverage test that evaluates reachability across the full classification range rather than relying on only three examples. I would preserve the original test results for a valid before-and-after comparison.
+
+Malformed requests - Criterion 5 MISSED under validation-specific scoring
+
+The after evaluation returned 10/10 correct validation rejections in Trial 1, 9/10 in Trial 2, and 8/10 in Trial 3. The remaining requests returned HTTP 429 because invalid creator IDs caused the rate limiter to group requests under the same IP address. The limiter intercepted them before input validation.
+
+What I would fix: Isolate future malformed-input evaluations from rate-limit interference by pacing the requests or separating their rate-limit buckets. I would preserve rate limiting in production because it protects the service from abusive traffic.
 
 **The trade I'd make if this ran for real:**
 
 <!-- Two sentences. Fewer wrong accusations means more AI text getting through.
      Say which way you'd go and WHO PAYS FOR IT. -->
-
+I would prioritize minimizing false accusations against human writers, even if that means more AI generated content receives an unsure classification, because incorrectly questioning someone's authorship can harm their reputation, academic standing, or opportunities. The cost of this decision falls primarily on the platform and its human reviewers, who must investigate more uncertain submissions.
 
 
 <!-- ═════════════════════════════════════════════════════════════════════
